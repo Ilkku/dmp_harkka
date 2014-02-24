@@ -1,0 +1,114 @@
+<html>
+    <head>
+        <title>Ilmakiekko</title>
+        <meta content="Ilmakiekko-peli">
+        <meta charset="utf-8"> 
+        <style></style>
+    </head>
+    <body>
+       <center> 
+           <h1> vastustaja </h1>
+           <canvas id="canvas" width="280" height="520"></canvas>
+           <h1> sinä </h1>    
+       </center>
+       <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+       <script type="text/javascript" charset="utf-8">
+       $(document).ready(function(){
+	       var canvas = $('#canvas')[0];
+           var context = canvas.getContext('2d');
+
+           var offset = 20;
+           var pöytäLeveys = canvas.width - offset * 2;
+           var pöytäPituus = canvas.height - offset * 2;
+           var mailaSäde = pöytäLeveys / 12;
+
+           var maila1X = pöytäLeveys / 2;
+           var maila1Y = pöytäPituus / 8 * 7;
+           var maila2X = pöytäLeveys / 2;
+           var maila2Y = pöytäPituus / 8;
+           var kiekkoX = pöytäLeveys / 2;
+           var kiekkoY = pöytäPituus / 2;
+	       if ("WebSocket" in window) {
+		       ws = new WebSocket("ws://" + document.domain + ":5000/api");
+		       ws.onmessage = function (msg) {
+		    	   var hiiri = JSON.parse(msg.data);
+		    	   maila1X = hiiri.x;
+	               if (maila1X - mailaSäde < 0)
+	                   maila1X = mailaSäde;
+	               if (maila1X + mailaSäde > pöytäLeveys - 1)
+	                   maila1X = pöytäLeveys - 1 - mailaSäde;
+	               maila1Y = hiiri.y;
+	               if (maila1Y - mailaSäde < pöytäPituus / 2)
+	                   maila1Y = pöytäPituus / 2 + mailaSäde;
+	               if (maila1Y + mailaSäde > pöytäPituus - 1)
+	                   maila1Y = pöytäPituus - 1 - mailaSäde;
+	               maila2X = hiiri.x;
+	               if (maila2X - mailaSäde < 0)
+	                   maila2X = mailaSäde;
+	               if (maila2X + mailaSäde > pöytäLeveys - 1)
+	                   maila2X = pöytäLeveys - 1 - mailaSäde;
+	               maila2Y = hiiri.y;
+	               if (maila2Y - mailaSäde < 0)
+	                   maila2Y = mailaSäde;
+	               if (maila2Y + mailaSäde > pöytäPituus / 2 - 1)
+	                   maila2Y = pöytäPituus / 2 - 1 - mailaSäde;              
+	               piirräKaikki();
+		       };
+	       } else {
+	    	   alert("Selaimesi ei tue WebSocket:ia");
+	       }
+   
+           canvas.addEventListener('mousemove', function(evt) { 
+               ws.send(JSON.stringify(hiirenPaikka(canvas, evt))) 
+           }, false);
+           piirräKaikki();
+           function hiirenPaikka(canvas, evt) {
+               var rect = canvas.getBoundingClientRect();
+               return {
+                   x: Math.floor(evt.clientX - rect.left - offset),
+                   y: Math.floor(evt.clientY - rect.top - offset)
+               };
+           }
+           function piirräKaikki() {
+               context.clearRect(0, 0, canvas.width, canvas.height);
+               teePöytä();
+               piirräMaila(maila1X, maila1Y, 1);
+               piirräMaila(maila2X, maila2Y, 2);
+               piirräKiekko(kiekkoX, kiekkoY, offset * 2);
+           }
+           function teePöytä() {
+               reuna(-1, -1, pöytäLeveys / 3, -1);
+               reuna(pöytäLeveys / 3 * 2, 0, pöytäLeveys, -1);
+               reuna(-1, -1, -1, pöytäPituus);
+               reuna(pöytäLeveys, -1, pöytäLeveys, pöytäPituus);
+               reuna(-1, pöytäPituus, pöytäLeveys / 3, pöytäPituus);
+               reuna(pöytäLeveys / 3 * 2, pöytäPituus, pöytäLeveys, pöytäPituus);
+           }
+           function reuna(x, y, x2, y2) {
+               context.beginPath();
+               context.moveTo(offset + x, offset + y);
+               context.lineTo(offset + x2, offset + y2);
+               context.lineCap = 'round';
+               context.lineWidth = 2;
+               context.stroke();
+           }
+           function piirräMaila(x, y, p) {
+               piirräYmpyrä(x, y, mailaSäde, ['red', 'blue'][p - 1]);
+           }
+           function piirräKiekko(x, y) {
+               piirräYmpyrä(x, y, mailaSäde / 2, '#222222');
+           }
+           function piirräYmpyrä(x, y, r, c) {
+               context.beginPath();
+               context.arc(x + offset, y + offset, r, 0, 2 * Math.PI, false);
+               context.fillStyle = c;
+               context.fill();
+               context.lineWidth = 1;
+               context.strokeStyle = '#333333';
+               context.stroke();
+           }
+       }); 
+            
+        </script>
+    </body>
+</html>
