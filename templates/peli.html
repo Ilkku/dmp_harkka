@@ -16,7 +16,9 @@
        $(document).ready(function(){
 	       var canvas = $('#canvas')[0];
            var context = canvas.getContext('2d');
-
+           
+           var id = lueID();
+           var pelaaja = luePelaaja();
            var offset = 20;
            var pöytäLeveys = canvas.width - offset * 2;
            var pöytäPituus = canvas.height - offset * 2;
@@ -31,37 +33,67 @@
 	       if ("WebSocket" in window) {
 		       ws = new WebSocket("ws://" + document.domain + ":5000/api");
 		       ws.onmessage = function (msg) {
-		    	   var hiiri = JSON.parse(msg.data);
-		    	   maila1X = hiiri.x;
-	               if (maila1X - mailaSäde < 0)
-	                   maila1X = mailaSäde;
-	               if (maila1X + mailaSäde > pöytäLeveys - 1)
-	                   maila1X = pöytäLeveys - 1 - mailaSäde;
-	               maila1Y = hiiri.y;
-	               if (maila1Y - mailaSäde < pöytäPituus / 2)
-	                   maila1Y = pöytäPituus / 2 + mailaSäde;
-	               if (maila1Y + mailaSäde > pöytäPituus - 1)
-	                   maila1Y = pöytäPituus - 1 - mailaSäde;
-	               maila2X = hiiri.x;
-	               if (maila2X - mailaSäde < 0)
-	                   maila2X = mailaSäde;
-	               if (maila2X + mailaSäde > pöytäLeveys - 1)
-	                   maila2X = pöytäLeveys - 1 - mailaSäde;
-	               maila2Y = hiiri.y;
-	               if (maila2Y - mailaSäde < 0)
-	                   maila2Y = mailaSäde;
-	               if (maila2Y + mailaSäde > pöytäPituus / 2 - 1)
-	                   maila2Y = pöytäPituus / 2 - 1 - mailaSäde;              
-	               piirräKaikki();
+		    	   var data = JSON.parse(msg.data);
+		    	   if (data.type === "hiiri" && data.id === id) {
+	    			   var hiiri = data.paikka;
+	    			   if (data.pelaaja == pelaaja){
+				    	   maila1X = hiiri.x;
+			               if (maila1X - mailaSäde < 0)
+			                   maila1X = mailaSäde;
+			               if (maila1X + mailaSäde > pöytäLeveys - 1)
+			                   maila1X = pöytäLeveys - 1 - mailaSäde;
+			               maila1Y = hiiri.y;
+			               if (maila1Y - mailaSäde < pöytäPituus / 2)
+			                   maila1Y = pöytäPituus / 2 + mailaSäde;
+			               if (maila1Y + mailaSäde > pöytäPituus - 1)
+			                   maila1Y = pöytäPituus - 1 - mailaSäde;
+		               } else {
+			               maila2X = pöytäLeveys-hiiri.x;
+			               if (maila2X - mailaSäde < 0)
+			                   maila2X = mailaSäde;
+			               if (maila2X + mailaSäde > pöytäLeveys - 1)
+			                   maila2X = pöytäLeveys - 1 - mailaSäde;
+			               maila2Y = pöytäPituus-hiiri.y;
+			               if (maila2Y - mailaSäde < 0)
+			                   maila2Y = mailaSäde;
+			               if (maila2Y + mailaSäde > pöytäPituus / 2 - 1)
+			                   maila2Y = pöytäPituus / 2 - 1 - mailaSäde;     
+		               }
+		               piirräKaikki();
+		    	   }
+		    	  
 		       };
 	       } else {
 	    	   alert("Selaimesi ei tue WebSocket:ia");
 	       }
    
            canvas.addEventListener('mousemove', function(evt) { 
-               ws.send(JSON.stringify(hiirenPaikka(canvas, evt))) 
+               var data = {type: "hiiri", paikka: hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja}
+        	   ws.send(JSON.stringify(data)) 
            }, false);
            piirräKaikki();
+           
+           function lueID(){
+	   		    var vars = window.location.search.substring(1).split('&');
+	   		    for (var i = 0; i < vars.length; i++) {
+	   		        var pari = vars[i].split('=');
+	   		        if (decodeURIComponent(pari[0]) == 'id') {
+	   		            return 1 * decodeURIComponent(pari[1]);
+	   		        }
+	   		    }  
+	   		    return 0;
+           }
+           function luePelaaja(){
+	   		    var vars = window.location.search.substring(1).split('&');
+	   		    for (var i = 0; i < vars.length; i++) {
+	   		        var pari = vars[i].split('=');
+	   		        if (decodeURIComponent(pari[0]) == 'pelaaja') {
+	   		            return 1 * decodeURIComponent(pari[1]);
+	   		        }
+	   		    }  
+	   		    return 0;
+          }
+           
            function hiirenPaikka(canvas, evt) {
                var rect = canvas.getBoundingClientRect();
                return {
