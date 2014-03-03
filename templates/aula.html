@@ -1,11 +1,55 @@
 <html>
   <head>
     <title>Aula</title>
-    <meta content="Ilmakiekkopelin aula">
+    <meta content="">
     <style></style>
   </head>
   <body>
   <h1> Aula </h1>
-  <a href="peli.html"> peliin </a> 
+  <button id="peliin"> peliin </button><br/>
+  <br/>
+  <br/>
+  <br/>
+  Nimesi: <input type="text" id="nimi"></input>  <br/>
+  Viesti: <input type="text" id="viesti"></input>  <br/>
+  <div id="chat"></div>
+  <script type="text/javascript" src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+  <script type="text/javascript" charset="utf-8">
+  	$(document).ready(function(){
+  		var peliin = $('#peliin')[0];
+  		var nimiKenttä = $('#nimi')[0];
+  		var viestiKenttä = $('#viesti')[0];
+  		var chat = $('#chat');
+  	    
+  		if ("WebSocket" in window) {
+	       ws = new WebSocket("ws://" + document.domain + ":5000/api");
+	       ws.onmessage = function (msg) {
+	    	   var data = JSON.parse(msg.data);
+	    	   if (data.type === "chat") {
+	    		   chat.append('<div><span>').append(data.nimi).append(': </span>').append(data.viesti).append('</div>');
+	    	   }
+	    	   if (data.type === "peli") {
+	    		   chat.append('<div><span>').append(data.nimi).append(": </span><a href='peli.html?id=" +data.id+ "&pelaaja=2'> peliin </a></div>");
+	    	   }
+	       } 
+	    } else {
+	 	   alert("Selaimesi ei tue WebSocket:ia");
+	    } 
+  		peliin.addEventListener('click', function(evt) {  
+			 id = Math.floor(Math.random()*10000);
+			 var data = {type: "peli", "nimi": nimiKenttä.value, "id": id};
+			 ws.send(JSON.stringify(data));
+			 
+			 window.location.href ="peli.html?id=" + id +"&pelaaja=1"; 
+	    }, false);
+  		viestiKenttä.addEventListener('keyup', function(evt) { 
+		 if (evt.keyCode === 13) {
+			 var data = {type: "chat", "nimi": nimiKenttä.value, "viesti": viestiKenttä.value};
+			 ws.send(JSON.stringify(data));
+			 viestiKenttä.value = '';
+		 }
+	    }, false);
+  	}); 
+  </script>
   </body>
 </html>
