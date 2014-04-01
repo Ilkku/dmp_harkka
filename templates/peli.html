@@ -31,17 +31,18 @@
            var kiekkoX = pöytäLeveys / 2;
            var kiekkoY = pöytäPituus / 2;
            
-           function Esine(x, y) {
-        	   this.x1 = x;				//edellinen x-koordinaatti
-        	   this.y1 = y;				//edellinen y-koordinaatti
-        	   this.x = x;
+           function Esine(x, y, m) {
+        	   this.x1 = x;				//edellinen koordinaatti
+        	   this.y1 = y;
+        	   this.x = x;				//nykyinen koordinaatti
         	   this.y = y;
-        	   this.nopeus = [this.x - this.x1, this.y - this.y1];
+        	   this.nopeus = [0, 0];
+        	   this.massa = m;
            }
            
-           var maila1 = new Esine(maila1X, maila1Y);
-           var maila2 = new Esine(maila2X, maila2Y);
-           var kiekko = new Esine(kiekkoX, kiekkoY);
+           var maila1 = new Esine(maila1X, maila1Y, 10000);
+           var maila2 = new Esine(maila2X, maila2Y, 10000);
+           var kiekko = new Esine(kiekkoX, kiekkoY, 1);
            
 	       if ("WebSocket" in window) {
 		       ws = new WebSocket("ws://" + document.domain + ":5000/api");
@@ -62,6 +63,7 @@
 			                   maila1.y = pöytäPituus / 2 + mailaSäde;
 			               if (maila1.y + mailaSäde > pöytäPituus - 1)
 			                   maila1.y = pöytäPituus - 1 - mailaSäde;
+			               maila1.nopeus = [maila1.x - maila1.x1, maila1.y - maila1.y1];
 		               } else {
 		            	   maila2.x1 = maila2.x;
 			               maila2.x = pöytäLeveys-hiiri.x;
@@ -74,14 +76,20 @@
 			               if (maila2.y - mailaSäde < 0)
 			                   maila2.y = mailaSäde;
 			               if (maila2.y + mailaSäde > pöytäPituus / 2 - 1)
-			                   maila2.y = pöytäPituus / 2 - 1 - mailaSäde;     
+			                   maila2.y = pöytäPituus / 2 - 1 - mailaSäde;
+			               maila2.nopeus = [maila2.x - maila2.x1, maila2.y - maila2.y1];
 		               }
 	    			   for (var maila in [maila1, maila2]) {
 	    				   if (havaitseTörmäys(maila)) {
-	    					   //laskeTörmäys(maila);			//ei toimi vielä
+	    					   laskeTörmäys(maila);
+	    					   lähetäKiekkotiedot();
 	    				   }
 	    			   }
 		               piirräKaikki();
+		    	   } else if (data.type == "kiekko") {
+		    		   kiekko.x = data.kiekkoX;
+		    		   kiekko.y = data.kiekkoY;
+		    		   kiekko.nopeus = data.nopeus;
 		    	   }
 		    	  
 		       };
@@ -90,8 +98,8 @@
 	       }
    
            canvas.addEventListener('mousemove', function(evt) { 
-               var data = {type: "hiiri", paikka: hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja}
-        	   ws.send(JSON.stringify(data)) 
+               var data = {type: "hiiri", "paikka": hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja};
+        	   ws.send(JSON.stringify(data));
            }, false);
            
            kiekko.x += kiekko.nopeus[0];
@@ -185,10 +193,15 @@
         	   }
         	   
            }
-           //TODO: ei toimi vielä
+           
            function laskeTörmäys(maila) {
-        	   kiekko.nopeus[0] = -kiekko.nopeus[0] + maila.nopeus[0];
-        	   kiekko.nopeus[1] = -kiekko.nopeus[1] + maila.nopeus[1];
+        	   kiekko.nopeus[0] = (kiekko.nopeus[0] * (kiekko.massa - maila.massa) + (2 * maila.massa * maila.nopeus[0])) / (kiekko.massa + maila.massa);
+        	   kiekko.nopeus[1] = (kiekko.nopeus[1] * (kiekko.massa - maila.massa) + (2 * maila.massa * maila.nopeus[1])) / (kiekko.massa + maila.massa);
+           }
+           
+           function lähetäKiekkotiedot() {
+        	   var data = {type: "kiekko", "kiekkoX": kiekko.x, "kiekkoY": kiekko.y, "nopeus": kiekko.nopeus};
+        	   ws.send(JSON.stringify(data));
            }
        }); 
             
