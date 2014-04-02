@@ -40,8 +40,8 @@
         	   this.massa = m;
            }
            
-           var maila1 = new Esine(maila1X, maila1Y, 10000);
-           var maila2 = new Esine(maila2X, maila2Y, 10000);
+           var maila1 = new Esine(maila1X, maila1Y, 10000);		//Mailoilla täytyy olla suuri massa suhteessa kiekkoon,
+           var maila2 = new Esine(maila2X, maila2Y, 10000);		//jotta saadaan realistinen nopeuden muuto kiekolle
            var kiekko = new Esine(kiekkoX, kiekkoY, 1);
            
 	       if ("WebSocket" in window) {
@@ -80,7 +80,7 @@
 		               }
 	    			   
 		    	   } else if (data.type === "kiekko" && data.id != id) {
-		    		   kiekko.x = data.kiekkoX;
+		    		   kiekko.x = data.kiekkoX;								//Kiekon sijainnin ja nopeuden päivitys toiselle pelaajalle
 		    		   kiekko.y = data.kiekkoY;
 		    		   kiekko.nopeus = data.nopeus;
 		    	   }
@@ -94,7 +94,7 @@
         	   ws.send(JSON.stringify(data));
            }, false);
            
-           var peliSilmukka = function() {
+           var pelisilmukka = function() {
         	   maila1.nopeus = [maila1.x - maila1.x1, maila1.y - maila1.y1];
         	   maila2.nopeus = [maila2.x - maila2.x1, maila2.y - maila2.y1];
         	   
@@ -103,14 +103,14 @@
         	   maila2.x1 = maila2.x;
         	   maila2.y1 = maila2.y;
         	   
-        	   havaitseTörmäykset();
+        	   havaitseTörmäykset();							//Funktio päivittää kiekon nopeuden mahdollisten törmäysten perusteella
                
-        	   if (kiekko.nopeus[0] != 0 && kiekko.nopeus[1] != 0) {
-        		   lähetäKiekkotiedot();
+        	   if (kiekko.nopeus[0] != 0 && kiekko.nopeus[1] != 0) {	//Jos nopeus ei ole 0 niin kiekon sijainti päivitetään ja
+        		   lähetäKiekkotiedot();								//tiedot lähetetään toiselle pelaajalle.
             	   kiekko.x += kiekko.nopeus[0];
     	           kiekko.y += kiekko.nopeus[1];
-    	           kiekko.nopeus[0] *= (499/500);
-    	           kiekko.nopeus[1] *= (499/500);
+    	           kiekko.nopeus[0] *= (499/500);						//Kitkavaikutus (499/500 tarkoittaa, että kiekko menettää)
+    	           kiekko.nopeus[1] *= (499/500);						//1/500 osan vauhdistaan joka ruudunpäivityksellä
         	   }
                piirräKaikki();
            };
@@ -123,13 +123,13 @@
                    null;
 
            if (animFrame !== null) {
-               var recursiveAnim = function() {
-                   peliSilmukka();
+               var recursiveAnim = function() {					//Pelisilmukka suoritetaan joka ruudunpäivityksellä
+                   pelisilmukka();
                    animFrame(recursiveAnim, canvas);
                };
                animFrame(recursiveAnim, canvas);
            } else {
-               setInterval(peliSilmukka, 1000.0 / 60.0);
+               setInterval(pelisilmukka, 1000.0 / 60.0);		//Jos selain ei tue requestAnimationFrame:a, niin käytetään setInterval:ia
            }
            
            function lueID(){
