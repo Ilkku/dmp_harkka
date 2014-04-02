@@ -33,6 +33,8 @@
            var kiekkoY = pöytäPituus / 2;
            
            function Esine(x, y, m) {
+        	   this.x2 = x;				// edellinen koordinaatti
+        	   this.y2 = y;
         	   this.x1 = x;				// edellinen koordinaatti
         	   this.y1 = y;
         	   this.x = x;				// nykyinen koordinaatti
@@ -99,9 +101,13 @@
            }, false);
            
            var pelisilmukka = function() {
-        	   maila1.nopeus = [maila1.x - maila1.x1, maila1.y - maila1.y1];
-        	   maila2.nopeus = [maila2.x - maila2.x1, maila2.y - maila2.y1];
-        	   
+        	   maila1.nopeus = [(maila1.x - maila1.x2)/2, (maila1.y - maila1.y2)/2];
+        	   maila2.nopeus = [(maila2.x - maila2.x2)/2, (maila2.y - maila2.y2)/2];
+
+        	   maila1.x2 = maila1.x1;
+        	   maila1.y2 = maila1.y1;
+        	   maila2.x2 = maila2.x1;
+        	   maila2.y2 = maila2.y1;
         	   maila1.x1 = maila1.x;
         	   maila1.y1 = maila1.y;
         	   maila2.x1 = maila2.x;
