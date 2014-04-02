@@ -83,12 +83,13 @@
 			                   maila2.y = pöytäPituus / 2 - 1 - mailaSäde;
 		               }
 	    			   
-		    	   } else if (data.type === "kiekko" && data.id != id) {
-		    		   kiekko.x = data.kiekkoX;
+		    	   } else if (data.type === "kiekko" && data.id === id && pelaaja == 2) {
 		    		   // Kiekon sijainnin ja nopeuden päivitys toiselle
 		    		   // pelaajalle
-		    		   kiekko.y = data.kiekkoY;
-		    		   kiekko.nopeus = data.nopeus;
+		    		   kiekko.x =  pöytäLeveys-data.kiekkoX;
+		    		   kiekko.y =  pöytäPituus-data.kiekkoY;
+		    		   kiekko.nopeus[0] = - data.nopeus[0];
+		    		   kiekko.nopeus[1] = - data.nopeus[1];
 		    	   }
 		       };
 	       } else {
@@ -97,9 +98,10 @@
    
            canvas.addEventListener('mousemove', function(evt) { 
                var data = {"type": "hiiri", "paikka": hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja};
-        	   ws.send(JSON.stringify(data));
+        	   ws.send(JSON.stringify(data)); 
            }, false);
            
+           var aika = (new Date()) .getTime();
            var pelisilmukka = function() {
         	   maila1.nopeus = [(maila1.x - maila1.x2)/2, (maila1.y - maila1.y2)/2];
         	   maila2.nopeus = [(maila2.x - maila2.x2)/2, (maila2.y - maila2.y2)/2];
@@ -127,6 +129,12 @@
 					// 1/500 osan vauhdistaan joka ruudunpäivityksellä
         	   }
                piirräKaikki();
+               var uusiAika = (new Date()) .getTime();
+               // rajoita turhaa kiekon tietojen lähetystä
+               if(uusiAika > aika + 100){
+            	   aika = uusiAika;
+                   if (pelaaja == 1) lähetäKiekkotiedot();
+               }
            };
 
            var animFrame = window.requestAnimationFrame ||
@@ -289,7 +297,7 @@
         	   }
            }
            
-           function lähetäKiekkotiedot() {
+           lähetäKiekkotiedot = function() {
         	   var data = {"type": "kiekko", "kiekkoX": kiekko.x, "kiekkoY": kiekko.y, "nopeus": kiekko.nopeus, "id": id};
         	   ws.send(JSON.stringify(data));
            }
