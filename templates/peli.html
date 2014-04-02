@@ -48,64 +48,89 @@
 		       ws = new WebSocket("ws://" + document.domain + ":5000/api");
 		       ws.onmessage = function (msg) {
 		    	   var data = JSON.parse(msg.data);
+		    	   
 		    	   if (data.type === "hiiri" && data.id === id) {
 	    			   var hiiri = data.paikka;
+	    			   
 	    			   if (data.pelaaja == pelaaja){
-	    				   maila1.x1 = maila1.x;
 				    	   maila1.x = hiiri.x;
 			               if (maila1.x - mailaSäde < 0)
 			                   maila1.x = mailaSäde;
 			               if (maila1.x + mailaSäde > pöytäLeveys - 1)
 			                   maila1.x = pöytäLeveys - 1 - mailaSäde;
-			               maila1.y1 = maila1.y;
+
 			               maila1.y = hiiri.y;
 			               if (maila1.y - mailaSäde < pöytäPituus / 2)
 			                   maila1.y = pöytäPituus / 2 + mailaSäde;
 			               if (maila1.y + mailaSäde > pöytäPituus - 1)
 			                   maila1.y = pöytäPituus - 1 - mailaSäde;
-			               maila1.nopeus = [maila1.x - maila1.x1, maila1.y - maila1.y1];
+			               
 		               } else {
-		            	   maila2.x1 = maila2.x;
 			               maila2.x = pöytäLeveys-hiiri.x;
 			               if (maila2.x - mailaSäde < 0)
 			                   maila2.x = mailaSäde;
 			               if (maila2.x + mailaSäde > pöytäLeveys - 1)
 			                   maila2.x = pöytäLeveys - 1 - mailaSäde;
-			               maila2.y1 = maila2.y;
+
 			               maila2.y = pöytäPituus-hiiri.y;
 			               if (maila2.y - mailaSäde < 0)
 			                   maila2.y = mailaSäde;
 			               if (maila2.y + mailaSäde > pöytäPituus / 2 - 1)
 			                   maila2.y = pöytäPituus / 2 - 1 - mailaSäde;
-			               maila2.nopeus = [maila2.x - maila2.x1, maila2.y - maila2.y1];
 		               }
-	    			   for (var maila in [maila1, maila2]) {
-	    				   if (havaitseTörmäys(maila)) {
-	    					   laskeTörmäys(maila);
-	    					   lähetäKiekkotiedot();
-	    				   }
-	    			   }
-		               piirräKaikki();
-		    	   } else if (data.type == "kiekko") {
+	    			   
+		    	   } else if (data.type === "kiekko" && data.id != id) {
 		    		   kiekko.x = data.kiekkoX;
 		    		   kiekko.y = data.kiekkoY;
 		    		   kiekko.nopeus = data.nopeus;
 		    	   }
-		    	  
 		       };
 	       } else {
 	    	   alert("Selaimesi ei tue WebSocket:ia");
 	       }
    
            canvas.addEventListener('mousemove', function(evt) { 
-               var data = {type: "hiiri", "paikka": hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja};
+               var data = {"type": "hiiri", "paikka": hiirenPaikka(canvas, evt), "id": id, "pelaaja":pelaaja};
         	   ws.send(JSON.stringify(data));
            }, false);
            
-           kiekko.x += kiekko.nopeus[0];
-           kiekko.y += kiekko.nopeus[1];
-           
-           piirräKaikki();
+           var peliSilmukka = function() {
+        	   maila1.nopeus = [maila1.x - maila1.x1, maila1.y - maila1.y1];
+        	   maila2.nopeus = [maila2.x - maila2.x1, maila2.y - maila2.y1];
+        	   
+        	   maila1.x1 = maila1.x;
+        	   maila1.y1 = maila1.y;
+        	   maila2.x1 = maila2.x;
+        	   maila2.y1 = maila2.y;
+        	   
+        	   havaitseTörmäykset();
+               
+        	   if (kiekko.nopeus[0] != 0 && kiekko.nopeus[1] != 0) {
+        		   lähetäKiekkotiedot();
+            	   kiekko.x += kiekko.nopeus[0];
+    	           kiekko.y += kiekko.nopeus[1];
+    	           kiekko.nopeus[0] *= (499/500);
+    	           kiekko.nopeus[1] *= (499/500);
+        	   }
+               piirräKaikki();
+           };
+
+           var animFrame = window.requestAnimationFrame ||
+                   window.webkitRequestAnimationFrame 	||
+                   window.mozRequestAnimationFrame    	||
+                   window.oRequestAnimationFrame      	||
+                   window.msRequestAnimationFrame    	||
+                   null;
+
+           if (animFrame !== null) {
+               var recursiveAnim = function() {
+                   peliSilmukka();
+                   animFrame(recursiveAnim, canvas);
+               };
+               animFrame(recursiveAnim, canvas);
+           } else {
+               setInterval(peliSilmukka, 1000.0 / 60.0);
+           }
            
            function lueID(){
 	   		    var vars = window.location.search.substring(1).split('&');
@@ -184,7 +209,7 @@
            function havaitseTörmäys(maila) {
         	   var dx = maila.x - kiekko.x;
         	   var dy = maila.y - kiekko.y;
-        	   var etäisyys = Math.sqrt(dx^2 + dy^2);
+        	   var etäisyys = Math.sqrt(dx*dx + dy*dy);
         	   
         	   if (etäisyys < mailaSäde + mailaSäde/2) {
         		   return true;
@@ -194,13 +219,30 @@
         	   
            }
            
+           function havaitseTörmäykset() {
+        	   var kiekkoSäde = mailaSäde / 2;
+        	   
+        	   if (havaitseTörmäys(maila1)) {
+				   laskeTörmäys(maila1);
+			   }
+			   if (havaitseTörmäys(maila2)) {
+				   laskeTörmäys(maila2);
+			   }
+			   if (kiekko.x - kiekkoSäde < 0 || kiekko.x + kiekkoSäde >= pöytäLeveys) {
+                   kiekko.nopeus[0] = - kiekko.nopeus[0];
+           	   }
+			   if (kiekko.y - kiekkoSäde < 0 || kiekko.y + kiekkoSäde >= pöytäPituus) {
+                   kiekko.nopeus[1] = - kiekko.nopeus[1];
+			   }
+           }
+           
            function laskeTörmäys(maila) {
         	   kiekko.nopeus[0] = (kiekko.nopeus[0] * (kiekko.massa - maila.massa) + (2 * maila.massa * maila.nopeus[0])) / (kiekko.massa + maila.massa);
         	   kiekko.nopeus[1] = (kiekko.nopeus[1] * (kiekko.massa - maila.massa) + (2 * maila.massa * maila.nopeus[1])) / (kiekko.massa + maila.massa);
            }
            
            function lähetäKiekkotiedot() {
-        	   var data = {type: "kiekko", "kiekkoX": kiekko.x, "kiekkoY": kiekko.y, "nopeus": kiekko.nopeus};
+        	   var data = {"type": "kiekko", "kiekkoX": kiekko.x, "kiekkoY": kiekko.y, "nopeus": kiekko.nopeus, "id": id};
         	   ws.send(JSON.stringify(data));
            }
        }); 
