@@ -282,6 +282,8 @@
         	   if(kiekko.y - kiekkoSäde*2 >= pöytäPituus || kiekko.y + kiekkoSäde*2 < 0){
 				   kiekko.nopeus[0] = 0;
 				   kiekko.nopeus[1] = 0;
+				   kiekko.x = pöytäLeveys / 2;
+           			   kiekko.y = pöytäPituus / 2;
 			   }
            }
            function laskeTörmäys(maila) {
