@@ -1,11 +1,17 @@
-from flask import Flask, request, render_template, views
+from flask import Flask, request, render_template
 from geventwebsocket.handler import WebSocketHandler
 from gevent.pywsgi import WSGIServer
-
 
 PELAAJAT = []
 app = Flask(__name__) 
 
+@app.route('/')
+def aula():
+	return render_template('aula.html')
+
+@app.route('/peli.html')
+def peli():
+	return render_template('peli.html')
 
 @app.route('/api')
 def api():
@@ -18,23 +24,12 @@ def api():
 				try :
 					websocket.send(message)
 				except :
-					# connection lost
+					# yhteys on katkennut
 					PELAAJAT.remove(websocket)
 	return
 
-class Aula(views.MethodView):
-	def get(self):
-		return render_template('aula.html')
-
-class Peli(views.MethodView):
-	def get(self):
-		return render_template('peli.html')
-
-app.add_url_rule('/', view_func=Aula.as_view('index'))
-app.add_url_rule('/peli.html', view_func=Peli.as_view('main'))
 app.debug = False
 
 if __name__ == '__main__':
-
-	http_server = WSGIServer(('',5000), app, handler_class=WebSocketHandler)
+	http_server = WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
 	http_server.serve_forever()
